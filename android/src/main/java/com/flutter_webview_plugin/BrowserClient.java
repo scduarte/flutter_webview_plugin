@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.List;
 
 /**
  * Created by lejard_h on 20/12/2017.
@@ -22,15 +23,17 @@ public class BrowserClient extends WebViewClient {
     private List<String> acceptBaseUrl = null;
 
     public BrowserClient() {
-        this(null);
     }
 
-    public BrowserClient(String invalidUrlRegex, List<String> acceptBaseUrl) {
+    public BrowserClient(String invalidUrlRegex) {
         super();
         if (invalidUrlRegex != null) {
             invalidUrlPattern = Pattern.compile(invalidUrlRegex);
         }
+    }
 
+    public BrowserClient(List<String> acceptBaseUrl) {
+        super();
         if(acceptBaseUrl != null){
             this.acceptBaseUrl = acceptBaseUrl;
         }
@@ -78,8 +81,7 @@ public class BrowserClient extends WebViewClient {
         data.put("type", isInvalid ? "abortLoad" : "shouldStart");
 
         FlutterWebviewPlugin.channel.invokeMethod("onState", data);
-        
-        return (checkAcceptdUrl(url) && isInvalid);
+        return (checkAcceptdUrl(url) || isInvalid);
     }
 
     @Override
@@ -92,7 +94,7 @@ public class BrowserClient extends WebViewClient {
         data.put("type", isInvalid ? "abortLoad" : "shouldStart");
 
         FlutterWebviewPlugin.channel.invokeMethod("onState", data);
-        return (checkAcceptdUrl(url) && isInvalid);
+        return (checkAcceptdUrl(url) || isInvalid);
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -125,11 +127,19 @@ public class BrowserClient extends WebViewClient {
 
     private boolean checkAcceptdUrl(String url) {
         if (acceptBaseUrl == null) {
-            return true;
+            return false;
         } else {
-            Long count = acceptBaseUrl.stream().filter(s -> s.startsWith(url)).count();
+            int count = 0;
+		
+            for(String s : acceptBaseUrl) {
+                if(s.startsWith(url)) {
+                    count++;
+                    
+                    break;
+                }
+            }
             
-            return count > 0;
+            return !(count > 0);
         }
     }
 }
